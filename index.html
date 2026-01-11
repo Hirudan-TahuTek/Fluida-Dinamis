@@ -23,15 +23,17 @@
             flex-direction: column;
             align-items: center;
             margin: 0;
-            padding: 20px;
+            padding: 15px;
+            overflow-x: hidden;
         }
 
         h1 {
             color: var(--primary-blue);
             text-shadow: 2px 2px 0px var(--primary-yellow);
-            font-size: 2.5rem;
-            margin-bottom: 5px;
+            font-size: clamp(1.8rem, 5vw, 2.5rem);
+            margin-bottom: 10px;
             text-align: center;
+            line-height: 1.2;
         }
 
         .concept-box {
@@ -40,34 +42,41 @@
             border-radius: 15px;
             padding: 15px;
             text-align: center;
+            width: 100%;
             max-width: 700px;
             margin-bottom: 20px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-sizing: border-box;
         }
 
         .formula-highlight {
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             color: var(--primary-blue);
             font-weight: bold;
             background-color: #e0f2fe;
-            padding: 5px 15px;
+            padding: 8px 15px;
             border-radius: 10px;
             display: inline-block;
-            margin-top: 5px;
+            margin-top: 8px;
         }
 
         .simulation-container {
             position: relative;
             border: 4px solid var(--primary-blue);
-            border-radius: 20px;
+            border-radius: 15px;
             overflow: hidden;
             background: white;
-            box-shadow: 0 10px 25px rgba(14, 165, 233, 0.2);
+            box-shadow: 0 5px 15px rgba(14, 165, 233, 0.2);
+            width: 100%;
+            max-width: 800px;
+            aspect-ratio: 16/9;
         }
 
         canvas {
             display: block;
             background: linear-gradient(to bottom, #f0f9ff, #bae6fd);
+            width: 100%;
+            height: 100%;
         }
 
         .controls {
@@ -78,31 +87,56 @@
             max-width: 800px;
             margin-top: 20px;
             display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
+            flex-direction: column;
             gap: 20px;
             box-shadow: 4px 4px 0px var(--dark-blue);
             border: 2px solid var(--dark-blue);
+            box-sizing: border-box;
         }
 
         .slider-group {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 10px;
+            gap: 15px;
             background: white;
-            padding: 15px;
+            padding: 20px;
             border-radius: 15px;
             border: 2px solid var(--dark-blue);
+            width: 100%;
+            box-sizing: border-box;
         }
 
         input[type="range"] {
-            width: 250px;
-            height: 10px;
+            -webkit-appearance: none;
+            width: 100%;
+            height: 12px;
             background: #cbd5e1;
-            border-radius: 5px;
+            border-radius: 6px;
             outline: none;
             cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 28px;
+            height: 28px;
+            background: var(--primary-blue);
+            border: 3px solid white;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 28px;
+            height: 28px;
+            background: var(--primary-blue);
+            border: 3px solid white;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
         
         .stats-grid {
@@ -111,20 +145,31 @@
             gap: 10px;
         }
 
+        @media (min-width: 600px) {
+            .stats-grid {
+                grid-template-columns: 1fr 1fr 1fr 1fr;
+            }
+        }
+
         .stat-card {
             background: white;
-            padding: 10px 15px;
+            padding: 12px;
             border-radius: 10px;
             border: 2px solid var(--primary-blue);
-            text-align: left;
-            font-size: 1rem;
+            text-align: center;
+            font-size: 0.9rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
         }
 
         .stat-card span {
             display: block;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: bold;
             color: var(--primary-blue);
+            margin-top: 4px;
         }
 
         .alert-text {
@@ -133,9 +178,11 @@
             font-weight: bold;
             color: #b91c1c;
             background: #fecaca;
-            padding: 8px;
-            border-radius: 8px;
+            padding: 10px;
+            border-radius: 10px;
             display: none;
+            border: 2px solid #b91c1c;
+            box-sizing: border-box;
         }
     </style>
 </head>
@@ -149,7 +196,7 @@
     </div>
 
     <div class="simulation-container">
-        <canvas id="fluidCanvas" width="800" height="350"></canvas>
+        <canvas id="fluidCanvas" width="800" height="450"></canvas>
     </div>
 
     <div class="controls">
@@ -157,25 +204,25 @@
         <div class="slider-group">
             <label for="outRadius"><strong>Atur Ukuran Pipa Keluar (A2):</strong></label>
             <input type="range" id="outRadius" min="20" max="100" value="100">
-            <div id="statusText">Ukuran Pipa Sama Besar</div>
+            <div id="statusText" style="font-weight: 600;">Ukuran Pipa Sama Besar</div>
         </div>
 
         <div class="stats-grid">
             <div class="stat-card">
-                Kecepatan Masuk (v1)
+                <div>v1 (Masuk)</div>
                 <span>2 m/s</span>
             </div>
             <div class="stat-card" style="border-color: #ef4444;">
-                Kecepatan Keluar (v2)
+                <div>v2 (Keluar)</div>
                 <span id="displayVelocity" style="color: #ef4444;">2.00 m/s</span>
             </div>
             <div class="stat-card">
-                Luas Penampang 1 (A1)
+                <div>A1 (Luas 1)</div>
                 <span>Tetap</span>
             </div>
             <div class="stat-card">
-                Luas Penampang 2 (A2)
-                <span id="displayArea">Sedang dihitung...</span>
+                <div>A2 (Luas 2)</div>
+                <span id="displayArea">...</span>
             </div>
         </div>
 
@@ -196,7 +243,7 @@
         const inputSpeed = 2;
 
         const particles = [];
-        const numParticles = 450;
+        const numParticles = 300; 
 
         class Particle {
             constructor() {
@@ -207,7 +254,7 @@
             reset() {
                 this.x = 0;
                 this.y = (canvas.height / 2) + (Math.random() * (inputRadius * 2) - inputRadius) * 0.8;
-                this.size = Math.random() * 4 + 3;
+                this.size = Math.random() * 4 + 2; 
                 this.color = `rgba(14, 165, 233, ${Math.random() * 0.6 + 0.4})`;
                 this.speedMultiplier = Math.random() * 0.2 + 0.9;
             }
@@ -307,12 +354,16 @@
                 statusText.innerText = "Pipa Menyempit (A2 Kecil)";
                 alertMsg.style.display = 'block';
                 alertMsg.innerText = "Karena A2 kecil, v2 jadi NGEBUT! 🚀";
+                alertMsg.style.background = "#fecaca";
+                alertMsg.style.color = "#b91c1c";
+                alertMsg.style.borderColor = "#b91c1c";
             } else if (outputRadius > inputRadius + 10) {
                 statusText.innerText = "Pipa Melebar (A2 Besar)";
                 alertMsg.style.display = 'block';
                 alertMsg.innerText = "Karena A2 besar, v2 jadi PELAN.. 🐢";
                 alertMsg.style.background = "#bbf7d0";
                 alertMsg.style.color = "#166534";
+                alertMsg.style.borderColor = "#166534";
             } else {
                 statusText.innerText = "Ukuran Pipa Normal";
                 alertMsg.style.display = 'none';

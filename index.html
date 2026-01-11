@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulasi Fluida Dinamis - Kelompok 4</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap');
+
+        :root {
+            --primary-yellow: #facc15;
+            --primary-blue: #0ea5e9;
+            --dark-blue: #1e3a8a;
+            --bg-ocean: #ecfeff;
+            --pipe-color: #64748b;
+        }
+
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background-color: var(--bg-ocean);
+            color: var(--dark-blue);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: var(--primary-blue);
+            text-shadow: 2px 2px 0px var(--primary-yellow);
+            font-size: 2.5rem;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+
+        .concept-box {
+            background-color: white;
+            border: 3px solid var(--primary-yellow);
+            border-radius: 15px;
+            padding: 15px;
+            text-align: center;
+            max-width: 700px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .formula-highlight {
+            font-size: 1.5rem;
+            color: var(--primary-blue);
+            font-weight: bold;
+            background-color: #e0f2fe;
+            padding: 5px 15px;
+            border-radius: 10px;
+            display: inline-block;
+            margin-top: 5px;
+        }
+
+        .simulation-container {
+            position: relative;
+            border: 4px solid var(--primary-blue);
+            border-radius: 20px;
+            overflow: hidden;
+            background: white;
+            box-shadow: 0 10px 25px rgba(14, 165, 233, 0.2);
+        }
+
+        canvas {
+            display: block;
+            background: linear-gradient(to bottom, #f0f9ff, #bae6fd);
+        }
+
+        .controls {
+            background-color: var(--primary-yellow);
+            padding: 20px;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 800px;
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            box-shadow: 4px 4px 0px var(--dark-blue);
+            border: 2px solid var(--dark-blue);
+        }
+
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            padding: 15px;
+            border-radius: 15px;
+            border: 2px solid var(--dark-blue);
+        }
+
+        input[type="range"] {
+            width: 250px;
+            height: 10px;
+            background: #cbd5e1;
+            border-radius: 5px;
+            outline: none;
+            cursor: pointer;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 10px;
+            border: 2px solid var(--primary-blue);
+            text-align: left;
+            font-size: 1rem;
+        }
+
+        .stat-card span {
+            display: block;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--primary-blue);
+        }
+
+        .alert-text {
+            width: 100%;
+            text-align: center;
+            font-weight: bold;
+            color: #b91c1c;
+            background: #fecaca;
+            padding: 8px;
+            border-radius: 8px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Fluida Dinamis: Kontinuitas</h1>
+    
+    <div class="concept-box">
+        <p>"Semakin kecil luas penampang, semakin besar kecepatan aliran."</p>
+        <div class="formula-highlight">A1 × v1 = A2 × v2</div>
+    </div>
+
+    <div class="simulation-container">
+        <canvas id="fluidCanvas" width="800" height="350"></canvas>
+    </div>
+
+    <div class="controls">
+        
+        <div class="slider-group">
+            <label for="outRadius"><strong>Atur Ukuran Pipa Keluar (A2):</strong></label>
+            <input type="range" id="outRadius" min="20" max="100" value="100">
+            <div id="statusText">Ukuran Pipa Sama Besar</div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                Kecepatan Masuk (v1)
+                <span>2 m/s</span>
+            </div>
+            <div class="stat-card" style="border-color: #ef4444;">
+                Kecepatan Keluar (v2)
+                <span id="displayVelocity" style="color: #ef4444;">2.00 m/s</span>
+            </div>
+            <div class="stat-card">
+                Luas Penampang 1 (A1)
+                <span>Tetap</span>
+            </div>
+            <div class="stat-card">
+                Luas Penampang 2 (A2)
+                <span id="displayArea">Sedang dihitung...</span>
+            </div>
+        </div>
+
+        <div class="alert-text" id="alertMsg">Wushhh! Airnya jadi ngebut! 🚀</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('fluidCanvas');
+        const ctx = canvas.getContext('2d');
+        const slider = document.getElementById('outRadius');
+        const displayArea = document.getElementById('displayArea');
+        const displayVelocity = document.getElementById('displayVelocity');
+        const statusText = document.getElementById('statusText');
+        const alertMsg = document.getElementById('alertMsg');
+
+        const inputRadius = 80;
+        let outputRadius = 80;
+        const inputSpeed = 2;
+
+        const particles = [];
+        const numParticles = 450;
+
+        class Particle {
+            constructor() {
+                this.reset();
+                this.x = Math.random() * canvas.width;
+            }
+
+            reset() {
+                this.x = 0;
+                this.y = (canvas.height / 2) + (Math.random() * (inputRadius * 2) - inputRadius) * 0.8;
+                this.size = Math.random() * 4 + 3;
+                this.color = `rgba(14, 165, 233, ${Math.random() * 0.6 + 0.4})`;
+                this.speedMultiplier = Math.random() * 0.2 + 0.9;
+            }
+
+            update() {
+                const progress = this.x / canvas.width;
+                const currentRadius = inputRadius + (outputRadius - inputRadius) * progress;
+
+                const areaRatio = (inputRadius * inputRadius) / (currentRadius * currentRadius);
+                const currentSpeed = (inputSpeed * areaRatio) * this.speedMultiplier;
+
+                this.x += currentSpeed;
+
+                const centerY = canvas.height / 2;
+                const distFromCenter = this.y - centerY;
+                
+                const squeezeFactor = currentRadius / (inputRadius + (outputRadius - inputRadius) * (this.x/canvas.width));
+                
+                if (Math.abs(distFromCenter) > currentRadius - 5) {
+                    this.y += (distFromCenter > 0 ? -1 : 1);
+                }
+
+                if (this.x > canvas.width) {
+                    this.reset();
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < numParticles; i++) {
+            particles.push(new Particle());
+        }
+
+        function drawPipe() {
+            ctx.fillStyle = '#cbd5e1';
+            const centerY = canvas.height / 2;
+
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(canvas.width, 0);
+            ctx.lineTo(canvas.width, centerY - outputRadius);
+            ctx.lineTo(0, centerY - inputRadius);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height);
+            ctx.lineTo(canvas.width, canvas.height);
+            ctx.lineTo(canvas.width, centerY + outputRadius);
+            ctx.lineTo(0, centerY + inputRadius);
+            ctx.fill();
+            
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 4;
+            
+            ctx.beginPath();
+            ctx.moveTo(0, centerY - inputRadius);
+            ctx.lineTo(canvas.width, centerY - outputRadius);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(0, centerY + inputRadius);
+            ctx.lineTo(canvas.width, centerY + outputRadius);
+            ctx.stroke();
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+
+            drawPipe();
+
+            requestAnimationFrame(animate);
+        }
+
+        function updateData() {
+            outputRadius = parseInt(slider.value);
+
+            const A1 = Math.PI * (inputRadius * inputRadius);
+            const A2 = Math.PI * (outputRadius * outputRadius);
+            
+            const v2 = inputSpeed * (A1 / A2);
+
+            displayArea.innerText = Math.round(A2/100) + " cm²";
+            displayVelocity.innerText = v2.toFixed(2) + " m/s";
+
+            if (outputRadius < inputRadius - 10) {
+                statusText.innerText = "Pipa Menyempit (A2 Kecil)";
+                alertMsg.style.display = 'block';
+                alertMsg.innerText = "Karena A2 kecil, v2 jadi NGEBUT! 🚀";
+            } else if (outputRadius > inputRadius + 10) {
+                statusText.innerText = "Pipa Melebar (A2 Besar)";
+                alertMsg.style.display = 'block';
+                alertMsg.innerText = "Karena A2 besar, v2 jadi PELAN.. 🐢";
+                alertMsg.style.background = "#bbf7d0";
+                alertMsg.style.color = "#166534";
+            } else {
+                statusText.innerText = "Ukuran Pipa Normal";
+                alertMsg.style.display = 'none';
+            }
+        }
+
+        slider.addEventListener('input', updateData);
+
+        updateData();
+        animate();
+
+    </script>
+</body>
+</html>
